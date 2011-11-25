@@ -38,6 +38,16 @@ module Uberpass
  
   class FileHandler
     class << self
+      attr_accessor :namespace
+       
+      def configure
+        yield self
+      end
+      
+      def name_spaced_file(file_name)
+        @namespace.nil? ? file_name : "#{file_name}_#{@namespace}"
+      end
+
       def private_key_file
         File.expand_path("~/.uberpass/private.pem")
       end
@@ -47,15 +57,15 @@ module Uberpass
       end
 
       def passwords_file
-        File.expand_path("~/.uberpass/passwords")
+        File.expand_path("~/.uberpass/#{name_spaced_file("passwords")}")
       end
 
       def key_file
-        File.expand_path("~/.uberpass/key")
+        File.expand_path("~/.uberpass/#{name_spaced_file("key")}")
       end
       
       def iv_file
-        File.expand_path("~/.uberpass/iv")
+        File.expand_path("~/.uberpass/#{name_spaced_file("iv")}")
       end
 
       def show_password(key)
@@ -85,7 +95,7 @@ module Uberpass
       def new_password(key)
         passwords = decrypted_passwords
         passwords[key] = {
-          "password" => Array.new(32).map { (65 + rand(58)).chr }.join,
+          "password" => Array.new(32).map{ rand(2) == 1 ? (65 + rand(58)).chr : rand(10) }.join,
           "created_at" => Time.now
         }
         encryptor = Encrypt.new(File.read(public_key_file), passwords.to_yaml)
@@ -116,7 +126,10 @@ module Uberpass
   end
 
   class CLI
-    def initialize
+    def initialize(namespace)
+      FileHandler.configure do |handler|
+        handler.namespace = namespace
+      end
       print "\nactions:\n"
       print "  generate\n"
       print "  destroy\n"
@@ -131,17 +144,29 @@ module Uberpass
       action, argument = $stdin.gets.chomp.split(' ')
       case action
       when "generate", "g"
-        password = FileHandler.new_password(argument)
-        print "password for #{argument}: #{password}\n"
+        if argument.to_s.strip == ""
+          print "choose a name ie. generate twitter"
+        else
+          password = FileHandler.new_password(argument)
+          print "password for #{argument}: #{password}\n"
+        end
       when "destroy", "d"
-        print "\nare you sure you? [yn] "
-        if $stdin.gets.chomp == "y"
-          FileHandler.destroy_password(argument)
-          print "password removed\n"
+        if argument.to_s.strip == ""
+          print "choose a name ie. destroy twitter"
+        else
+          print "\nare you sure you? [yn] "
+          if $stdin.gets.chomp == "y"
+            FileHandler.destroy_password(argument)
+            print "password removed\n"
+          end
         end
       when "reveal", "r"
-        password = FileHandler.show_password(argument)
-        print "password for #{argument}: #{password}\n"
+        if argument.to_s.strip == ""
+          print "choose a name ie. reveal twitter"
+        else
+          password = FileHandler.show_password(argument)
+          print "password for #{argument}: #{password}\n"
+        end
       when "list", "l"
         keys = FileHandler.list_keys
         print "\n"

@@ -4,4 +4,4 @@ Signal.trap("INT") { exit }
 
 require 'uberpass'
 
-Uberpass::CLI.new
+Uberpass::CLI.new(ARGV.pop)
