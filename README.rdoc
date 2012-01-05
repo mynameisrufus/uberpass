@@ -1,5 +1,9 @@
 = Über password
 
+== Install
+
+  & gem install uberpass
+
 == Create keypair
 
   $ openssl genrsa -des3 -out ~/.uberpass/private.pem 2048
