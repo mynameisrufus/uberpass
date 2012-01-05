@@ -142,6 +142,19 @@ module Uberpass
     def actions
       print "\n> "
       action, argument = $stdin.gets.chomp.split(' ')
+      do_action_with_rescue action, argument
+    end
+
+    def do_action_with_rescue(action, argument)
+      begin
+        do_action action, argument
+      rescue OpenSSL::PKey::RSAError
+        print "\nInvalid PEM pass phrase. Please try again.\n\n"
+        do_action_with_rescue action, argument
+      end
+    end
+
+    def do_action(action, argument) 
       case action
       when "generate", "g"
         if argument.to_s.strip == ""
