@@ -2,7 +2,7 @@
 
 == Install
 
-  & gem install uberpass
+  $ gem install uberpass
 
 == Create keypair
 
