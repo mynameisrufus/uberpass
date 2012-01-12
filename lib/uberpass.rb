@@ -103,6 +103,17 @@ module Uberpass
         passwords[key]["password"]
       end
 
+      def store(key, password)
+        passwords = decrypted_passwords
+        passwords[key] = {
+          "password" => password,
+          "created_at" => Time.now
+        }
+        encryptor = Encrypt.new(File.read(public_key_file), passwords.to_yaml)
+        write(encryptor)
+        passwords[key]["password"]
+      end
+
       def destroy_password(key)
         passwords = decrypted_passwords
         entry = passwords.delete key
@@ -110,7 +121,7 @@ module Uberpass
         write(encryptor)
         entry
       end
-
+        
       def write(encryptor)
         File.open(passwords_file, "w") { |file|
           file.write(encryptor.encrypted_data)
@@ -135,6 +146,7 @@ module Uberpass
       print "  destroy\n"
       print "  reveal\n"
       print "  list\n"
+      print "  encrypt\n"
       print "  exit\n"
       actions
     end
@@ -152,6 +164,10 @@ module Uberpass
         print "\nInvalid PEM pass phrase. Please try again.\n\n"
         do_action_with_rescue action, argument
       end
+    end
+
+    def do_two_step
+
     end
 
     def do_action(action, argument) 
@@ -179,6 +195,20 @@ module Uberpass
         else
           password = FileHandler.show_password(argument)
           print "password for #{argument}: #{password}\n"
+        end
+      when "encrypt", "e"
+        if argument.to_s.strip == ""
+          print "choose a name ie. encrypt router"
+        else
+          print "\nenter item"
+          print "\n> "
+          value = $stdin.gets.chomp
+          if value == ""
+            print "nothing encrypted"
+          else
+            password = FileHandler.store(argument, value)
+            print "password encrypted"
+          end
         end
       when "list", "l"
         keys = FileHandler.list_keys

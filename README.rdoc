@@ -15,6 +15,6 @@ You personal passwords:
 
   $ uberpass
 
-or you work related passwords:
+or your work related passwords:
 
   $ uberpass happy_place
