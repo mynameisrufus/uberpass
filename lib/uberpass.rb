@@ -1,6 +1,7 @@
 require 'uberpass/version'
 require 'openssl'
 require 'yaml'
+require 'ostruct'
 
 module Uberpass
   class Decrypt
@@ -68,13 +69,16 @@ module Uberpass
         File.expand_path("~/.uberpass/#{name_spaced_file("iv")}")
       end
 
-      def show_password(key)
-        passwords = decrypted_passwords
-        passwords[key]["password"] unless passwords[key].nil?
-      end
-
-      def list_keys
-        decrypted_passwords.keys
+      def write(encryptor)
+        File.open(passwords_file, "w") { |file|
+          file.write(encryptor.encrypted_data)
+        }
+        File.open(key_file, "w") { |file|
+          file.write(encryptor.encrypted_key)
+        }
+        File.open(iv_file, "w") { |file|
+          file.write(encryptor.encrypted_iv)
+        }
       end
 
       def decrypted_passwords
@@ -92,136 +96,217 @@ module Uberpass
         end
       end
 
-      def new_password(key)
+      def show(key)
+        Hash[*[key, decrypted_passwords[key]]]
+      end
+
+      def all
+        decrypted_passwords.map do |entry|
+          Hash[*entry]
+        end
+      end
+
+      def generate(key)
         passwords = decrypted_passwords
-        passwords[key] = {
+        entry = passwords[key] = {
           "password" => Array.new(32).map{ rand(2) == 1 ? (65 + rand(58)).chr : rand(10) }.join,
           "created_at" => Time.now
         }
         encryptor = Encrypt.new(File.read(public_key_file), passwords.to_yaml)
         write(encryptor)
-        passwords[key]["password"]
+        Hash[*[key, entry]]
       end
 
-      def store(key, password)
+      def encrypt(key, password)
         passwords = decrypted_passwords
-        passwords[key] = {
+        entry = passwords[key] = {
           "password" => password,
           "created_at" => Time.now
         }
         encryptor = Encrypt.new(File.read(public_key_file), passwords.to_yaml)
         write(encryptor)
-        passwords[key]["password"]
+        Hash[*[key, entry]]
       end
 
-      def destroy_password(key)
+      def rename(old, new)
+        passwords = decrypted_passwords
+        entry = passwords.delete old
+        passwords[new] = entry
+        encryptor = Encrypt.new(File.read(public_key_file), passwords.to_yaml)
+        write(encryptor)
+        Hash[*[new, entry]]
+      end
+
+      def destroy(key)
         passwords = decrypted_passwords
         entry = passwords.delete key
         encryptor = Encrypt.new(File.read(public_key_file), passwords.to_yaml)
         write(encryptor)
-        entry
+        Hash[*[key, entry]]
       end
         
-      def write(encryptor)
-        File.open(passwords_file, "w") { |file|
-          file.write(encryptor.encrypted_data)
-        }
-        File.open(key_file, "w") { |file|
-          file.write(encryptor.encrypted_key)
-        }
-        File.open(iv_file, "w") { |file|
-          file.write(encryptor.encrypted_iv)
-        }
-      end
     end
   end
 
   class CLI
+    class InvalidActionError < StandardError; end
+    class MissingArgumentError < StandardError; end
+
+    module Actions
+      attr_accessor :actions
+
+      def register_action(*args, &block)
+        options           = args.size == 1 ? {} : (args.last || {})
+        options[:short]   = options[:short].nil? ? args.first[0] : options.delete(:short).to_s
+        options[:steps]   = [] if options[:steps].nil?
+        options[:filter] = [] if options[:filter].nil?
+        options[:confirm] = false if options[:confirm].nil?
+        (@actions ||= []) << OpenStruct.new({ :name => args.first, :proc => block }.merge(options))
+      end
+    end
+
+    module Formater
+      def bold(obj)
+        "\033[0;1m#{obj}\033[0m"
+      end
+
+      def red(obj)
+        "\033[01;31m#{obj}\033[0m"
+      end
+
+      def green(obj)
+        "\033[0;32m#{obj}\033[0m"
+      end
+    
+      def gray(obj)
+        "\033[1;30m#{obj}\033[0m"
+      end
+    end
+
+    extend Actions
+    include Formater
+
+    register_action :generate, :steps => ["key"] do |key|
+      FileHandler.generate key
+    end
+
+    register_action :destroy, :steps => ["key"], :short => :rm, :confirm => true do |key|
+      FileHandler.destroy key
+    end
+
+    register_action :show, :steps => ["key"] do |key|
+      FileHandler.show key
+    end
+
+    register_action :encrypt, :steps => ["key", "password"] do |key, password|
+      FileHandler.encrypt key, password
+    end
+
+    register_action :rename, :steps => ["key", "new name"] do |old, new|
+      FileHandler.rename old, new
+    end
+
+    register_action :list, :filter => ["password"] do
+      FileHandler.all
+    end
+
+    register_action :dump do
+      FileHandler.all
+    end
+
+    register_action :help do
+      CLI.help
+      []
+    end
+
+    register_action :exit, :short => :ex do
+      exit
+    end
+
     def initialize(namespace)
       FileHandler.configure do |handler|
         handler.namespace = namespace
       end
+      line
+      do_action
+    end
+
+    def line(message = nil, format = :bold)
+      parts = []
+      parts << "\nuberpass"
+      parts << "#{VERSION}:"
+      parts << send(format, message) unless message.nil?
+      parts << "> "
+      print parts.join(' ')
+    end
+
+    def self.help
       print "\nactions:\n"
-      print "  generate\n"
-      print "  destroy\n"
-      print "  reveal\n"
-      print "  list\n"
-      print "  encrypt\n"
-      print "  exit\n"
-      actions
+      actions.each do |action|
+        print "  #{action.name}\n"
+      end
     end
 
-    def actions
-      print "\n> "
-      action, argument = $stdin.gets.chomp.split(' ')
-      do_action_with_rescue action, argument
+    def confirm_action
+      line "are you sure you? [yn]", :green
+      $stdin.gets.chomp == "y"
     end
 
-    def do_action_with_rescue(action, argument)
+    def do_action
+      input = $stdin.gets.chomp
+      do_action_with_rescue input
+    end
+
+    def do_action_with_rescue(input)
       begin
-        do_action action, argument
-      rescue OpenSSL::PKey::RSAError
-        print "\nInvalid PEM pass phrase. Please try again.\n\n"
-        do_action_with_rescue action, argument
-      end
-    end
-
-    def do_two_step
-
-    end
-
-    def do_action(action, argument) 
-      case action
-      when "generate", "g"
-        if argument.to_s.strip == ""
-          print "choose a name ie. generate twitter"
-        else
-          password = FileHandler.new_password(argument)
-          print "password for #{argument}: #{password}\n"
-        end
-      when "destroy", "d"
-        if argument.to_s.strip == ""
-          print "choose a name ie. destroy twitter"
-        else
-          print "\nare you sure you? [yn] "
-          if $stdin.gets.chomp == "y"
-            FileHandler.destroy_password(argument)
-            print "password removed\n"
-          end
-        end
-      when "reveal", "r"
-        if argument.to_s.strip == ""
-          print "choose a name ie. reveal twitter"
-        else
-          password = FileHandler.show_password(argument)
-          print "password for #{argument}: #{password}\n"
-        end
-      when "encrypt", "e"
-        if argument.to_s.strip == ""
-          print "choose a name ie. encrypt router"
-        else
-          print "\nenter item"
-          print "\n> "
-          value = $stdin.gets.chomp
-          if value == ""
-            print "nothing encrypted"
-          else
-            password = FileHandler.store(argument, value)
-            print "password encrypted"
-          end
-        end
-      when "list", "l"
-        keys = FileHandler.list_keys
-        print "\n"
-        keys.each do |key|
-          print " - #{key}\n"
+        action = fetch_action input 
+        args = []
+        action.steps.each do |instruction|
+          line instruction, :green
+          arg = $stdin.gets.chomp
+          raise MissingArgumentError, instruction if arg == ""
+          args << arg
         end 
-      when "exit"
-        exit
-      else
-        print "invalid option"
+        if action.confirm
+          pp action.proc.call(*args), action.filter if confirm_action
+        else
+          pp action.proc.call(*args), action.filter
+        end
+        line
+        do_action
+      rescue MissingArgumentError => e
+        line e, :red
+        do_action
+      rescue InvalidActionError => e
+        line e, :red
+        do_action
+      rescue OpenSSL::PKey::RSAError => e
+        line e, :red
+        do_action
       end
-      actions
+    end
+
+    def fetch_action(key)
+      self.class.actions.each do |action|
+        return action if action.name == key.to_sym || action.short == key
+      end
+      raise InvalidActionError, key
+    end
+
+    def pp(entry, filters)
+      if entry.is_a? Array
+        entry.each do |entry|
+          pp entry, filters
+        end
+      else
+        key = entry.keys.first
+        filters.each do |filter|
+          entry.delete filter
+        end
+        print "\n#{bold key}"
+        print "\n#{entry[key]["password"]}" unless entry[key]["password"].nil?
+        print "\n#{gray entry[key]["created_at"]}\n" unless entry[key]["created_at"].nil?
+      end
     end
   end
 end
