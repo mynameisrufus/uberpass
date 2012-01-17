@@ -2,6 +2,7 @@ require 'uberpass/version'
 require 'openssl'
 require 'yaml'
 require 'ostruct'
+require 'securerandom'
 
 module Uberpass
   class Decrypt
@@ -109,7 +110,7 @@ module Uberpass
       def generate(key)
         passwords = decrypted_passwords
         entry = passwords[key] = {
-          "password" => Array.new(32).map{ rand(2) == 1 ? (65 + rand(58)).chr : rand(10) }.join,
+          "password" => SecureRandom.urlsafe_base64(24),
           "created_at" => Time.now
         }
         encryptor = Encrypt.new(File.read(public_key_file), passwords.to_yaml)
@@ -258,20 +259,21 @@ module Uberpass
     end
 
     def do_action_with_rescue(input)
+      args = input.split(/ /)
       begin
-        action = fetch_action input 
-        args = []
-        action.steps.each do |instruction|
+        action = fetch_action args.slice!(0)
+        action.steps[args.size, action.steps.size].each do |instruction|
           line instruction, :green
           arg = $stdin.gets.chomp
           raise MissingArgumentError, instruction if arg == ""
           args << arg
         end 
         if action.confirm
-          pp action.proc.call(*args), action.filter if confirm_action
+          pp(action.proc.call(*args), action.filter) if confirm_action
         else
-          pp action.proc.call(*args), action.filter
+          pp(action.proc.call(*args), action.filter)
         end
+        print "\n"
         line
         do_action
       rescue MissingArgumentError => e
@@ -293,19 +295,18 @@ module Uberpass
       raise InvalidActionError, key
     end
 
-    def pp(entry, filters)
+    def pp(entry, filter)
       if entry.is_a? Array
         entry.each do |entry|
-          pp entry, filters
+          pp entry, filter
         end
       else
         key = entry.keys.first
-        filters.each do |filter|
-          entry.delete filter
+        filter.each do |f|
+          entry[key].delete f
         end
-        print "\n#{bold key}"
+        print "\n#{gray entry[key]["created_at"].strftime("%d/%m/%Y")} #{bold key} "
         print "\n#{entry[key]["password"]}" unless entry[key]["password"].nil?
-        print "\n#{gray entry[key]["created_at"]}\n" unless entry[key]["created_at"].nil?
       end
     end
   end
