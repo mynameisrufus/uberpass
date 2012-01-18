@@ -107,15 +107,12 @@ module Uberpass
         end
       end
 
+      def generate_short(key)
+        encrypt key, SecureRandom.urlsafe_base64(8)
+      end
+
       def generate(key)
-        passwords = decrypted_passwords
-        entry = passwords[key] = {
-          "password" => SecureRandom.urlsafe_base64(24),
-          "created_at" => Time.now
-        }
-        encryptor = Encrypt.new(File.read(public_key_file), passwords.to_yaml)
-        write(encryptor)
-        Hash[*[key, entry]]
+        encrypt key, SecureRandom.urlsafe_base64(24)
       end
 
       def encrypt(key, password)
@@ -189,6 +186,10 @@ module Uberpass
 
     register_action :generate, :steps => ["key"] do |key|
       FileHandler.generate key
+    end
+
+    register_action :generate_short, :steps => ["key"], :short => :gs do |key|
+      FileHandler.generate_short key
     end
 
     register_action :destroy, :steps => ["key"], :short => :rm, :confirm => true do |key|
