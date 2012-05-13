@@ -9,6 +9,11 @@
   $ openssl genrsa -des3 -out ~/.uberpass/private.pem 2048
   $ openssl rsa -in ~/.uberpass/private.pem -out ~/.uberpass/public.pem -outform PEM -pubout
 
+== Dropbox
+
+  $ mv ~/.uberpass ~/Dropbox/uberpass
+  $ ln -s ~/Dropbox/uberpass ~/.uberpass
+
 == Use
 
 You personal passwords:

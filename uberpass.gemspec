@@ -13,6 +13,7 @@ Gem::Specification.new do |s|
 
   s.rubyforge_project = "uberpass"
 
+  s.add_runtime_dependency "highline", "1.6.12"
   s.add_development_dependency "rake"
 
   s.files         = `git ls-files`.split("\n")
