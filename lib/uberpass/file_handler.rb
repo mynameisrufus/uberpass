@@ -2,13 +2,15 @@ require 'securerandom'
 
 module Uberpass
   class FileHandler
+    class ExistingEntryError < StandardError; end
+
     class << self
       attr_accessor :namespace, :pass_phrase
-       
+
       def configure
         yield self
       end
-      
+
       def name_spaced_file(file_name)
         @namespace.nil? ? file_name : "#{file_name}_#{@namespace}"
       end
@@ -81,6 +83,7 @@ module Uberpass
 
       def encrypt(key, password)
         passwords = decrypted_passwords
+        raise ExistingEntryError, key unless passwords[key].nil?
         entry = passwords[key] = {
           "password" => password,
           "created_at" => Time.now
@@ -92,6 +95,7 @@ module Uberpass
 
       def rename(old, new)
         passwords = decrypted_passwords
+        raise ExistingEntryError, new unless passwords[new].nil?
         entry = passwords.delete old
         passwords[new] = entry
         encryptor = Encrypt.new(File.read(public_key_file), passwords.to_yaml)
