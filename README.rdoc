@@ -16,10 +16,15 @@
 
 == Use
 
-You personal passwords:
+Your personal passwords:
 
   $ uberpass
 
 or your work related passwords:
 
   $ uberpass happy_place
+
+and getting some help:
+
+  $ uberpass
+  $ uberpass:0.0.4> list
