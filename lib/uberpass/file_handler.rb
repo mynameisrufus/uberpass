@@ -103,7 +103,7 @@ module Uberpass
         Hash[*[new, entry]]
       end
 
-      def destroy(key)
+      def remove(key)
         passwords = decrypted_passwords
         entry = passwords.delete key
         encryptor = Encrypt.new(File.read(public_key_file), passwords.to_yaml)

@@ -78,12 +78,12 @@ module Uberpass
     end
 
     register_action do |action|
-      action.name        = 'destory'
+      action.name        = 'remove'
       action.short       = 'rm'
       action.usage       = 'rm [name]'
       action.confirm     = true
       action.proc        = ->(terminal, key) {
-        ShowDecorator.new(terminal, FileHandler.destroy(key)).output
+        ShowDecorator.new(terminal, FileHandler.remove(key)).output
       }
       action.description = "Removes and entry"
     end
@@ -173,7 +173,7 @@ module Uberpass
     def do_action
       input = @terminal.ask "uberpass:#{VERSION}> "
       return if input.strip == 'exit'
-      @output.print "\n\n"
+      @output.print "\n"
       do_action_with_rescue input
       @output.print "\n"
       do_action if @run_loop
@@ -196,7 +196,7 @@ module Uberpass
     rescue MissingArgumentError, InvalidActionError, OpenSSL::PKey::RSAError => e
       @terminal.say "<%= color('#{e}', :error) %>"
     rescue FileHandler::ExistingEntryError => key
-      @terminal.say "<%= color('#{key} is already defined, try deleting it first', :error) %>"
+      @terminal.say "<%= color('#{key} is already defined, try removing it first', :error) %>"
     end
 
     def fetch_action(key)

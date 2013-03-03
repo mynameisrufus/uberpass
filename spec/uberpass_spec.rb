@@ -20,7 +20,7 @@ describe Uberpass do
     @input.truncate(@input.rewind)
 
     Uberpass::FileHandler.all.each do |entry|
-      Uberpass::FileHandler.destroy entry.keys.first
+      Uberpass::FileHandler.remove entry.keys.first
     end
 
     Uberpass::FileHandler.generate 'twitter'
