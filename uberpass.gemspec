@@ -13,8 +13,9 @@ Gem::Specification.new do |s|
 
   s.rubyforge_project = "uberpass"
 
-  s.add_runtime_dependency "highline", "1.6.12"
+  s.add_runtime_dependency "highline", "1.6.15"
   s.add_development_dependency "rake"
+  s.add_development_dependency "turn", "0.9.6"
 
   s.files         = `git ls-files`.split("\n")
   s.test_files    = `git ls-files -- {test,spec,features}/*`.split("\n")

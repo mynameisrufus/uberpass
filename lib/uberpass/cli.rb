@@ -1,9 +1,21 @@
 require 'ostruct'
-require "highline/import"
+require "highline"
 
 module Uberpass
   class CLI
-    class InvalidActionError < StandardError; end
+    class InvalidActionError < StandardError
+      attr_reader :action
+
+      def initialize action
+        @action = action
+        super
+      end
+
+      def to_s
+        "\\'#{action}\\' is not a uberpass command"
+      end
+    end
+
     class MissingArgumentError < StandardError; end
 
     module Actions
@@ -37,6 +49,10 @@ module Uberpass
       end
     end
 
+    HighLine.color_scheme = HighLine::ColorScheme.new do |cs|
+      cs[:error] = [:bold, :red]
+    end
+
     extend Actions
     include Formater
 
@@ -68,7 +84,7 @@ module Uberpass
       FileHandler.rename old, new
     end
 
-    register_action :list, :filter => ["password"] do
+    register_action :list, :short => :li, :filter => ["password"] do
       FileHandler.all
     end
 
@@ -81,18 +97,18 @@ module Uberpass
       []
     end
 
-    register_action :exit, :short => :ex do
-      exit
-    end
+    def initialize(namespace, input = $stdin, output = $stdout, run_loop = true)
+      @input    = input
+      @output   = output
+      @run_loop = run_loop
+      @terminal = HighLine.new @input, @output
 
-    def initialize(namespace)
-      pass = ask("Enter PEM pass phrase: ") { |q| q.echo = false }
+      pass = @terminal.ask("Enter PEM pass phrase: ") { |q| q.echo = '*' }
       FileHandler.configure do |handler|
         handler.namespace = namespace
         handler.pass_phrase = pass
       end
-      line
-      do_action
+      do_action if @run_loop
     end
 
     def line(message = nil, format = :bold)
@@ -101,13 +117,13 @@ module Uberpass
       parts << "#{VERSION}:"
       parts << send(format, message) unless message.nil?
       parts << "> "
-      print parts.join(' ')
+      @output.print parts.join(' ')
     end
 
     def self.help
       print "\nactions:\n"
       actions.each do |action|
-        print "  #{action.name}\n"
+        @output.print "  #{action.name}\n"
       end
     end
 
@@ -117,13 +133,16 @@ module Uberpass
     end
 
     def do_action
-      input = $stdin.gets.chomp
+      input = @terminal.ask "uberpass:#{VERSION}> "
+      return if input.strip == 'exit'
       do_action_with_rescue input
+      do_action if @run_loop
     end
 
     def do_action_with_rescue(input)
       args = input.split(/ /)
       begin
+        raise ArgumentError if args.count == 0
         action = fetch_action args.slice!(0)
         action.steps[args.size, action.steps.size].each do |instruction|
           line instruction, :green
@@ -136,18 +155,14 @@ module Uberpass
         else
           pp(action.proc.call(*args), action.filter)
         end
-        print "\n"
+        @output.print "\n"
         line
-        do_action
       rescue MissingArgumentError => e
-        line e, :red
-        do_action
+        @terminal.say "<%= color('#{e}', :error) %>!"
       rescue InvalidActionError => e
-        line e, :red
-        do_action
+        @terminal.say "<%= color('#{e}', :error) %>!"
       rescue OpenSSL::PKey::RSAError => e
-        line e, :red
-        do_action
+        @terminal.say "<%= color('#{e}', :error) %>!"
       end
     end
 
@@ -168,8 +183,8 @@ module Uberpass
         filter.each do |f|
           entry[key].delete f
         end
-        print "\n#{gray entry[key]["created_at"].strftime("%d/%m/%Y")} [#{index}] #{bold key} "
-        print "\n#{entry[key]["password"]}" unless entry[key]["password"].nil?
+        @output.print "\n#{gray entry[key]["created_at"].strftime("%d/%m/%Y")} [#{index}] #{bold key} "
+        @output.print "\n#{entry[key]["password"]}" unless entry[key]["password"].nil?
       end
     end
   end
