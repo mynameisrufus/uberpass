@@ -116,4 +116,14 @@ describe Uberpass do
     password = Uberpass::FileHandler.show 'tumblr'
     refute_nil password['tumblr']
   end
+
+  it "should show an error if key missing" do
+    @output.truncate(@output.rewind)
+    @input << 's missing'
+    @input.rewind
+
+    @uberpass.do_action
+
+    assert_match /missing does not exist/, @output.string
+  end
 end

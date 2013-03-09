@@ -1,4 +1,3 @@
-require 'ostruct'
 require "highline"
 
 module Uberpass
@@ -159,13 +158,6 @@ module Uberpass
       do_action if @run_loop
     end
 
-    def self.help
-      print "\nactions:\n"
-      actions.each do |action|
-        @output.print "  #{action.name}\n"
-      end
-    end
-
     def confirm_action
       @terminal.agree("<%= color('are you sure?', :confirm) %> ") { |q| q.default = "n" }
     end
@@ -256,9 +248,13 @@ module Uberpass
       end
 
       def output_entry(key, values)
-        out = "<%= color('#{values["created_at"].strftime("%d/%m/%Y")}', :date) %>"
-        out << " <%= color('#{key}', :name) %>\n"
-        out << "<%= color('#{values["password"]}', :name) %>"
+        if values.nil?
+          out = "<%= color('#{key} does not exist', :error) %>"
+        else
+          out = "<%= color('#{values["created_at"].strftime("%d/%m/%Y")}', :date) %>"
+          out << " <%= color('#{key}', :name) %>\n"
+          out << "<%= color('#{values["password"]}', :name) %>"
+        end
 
         @terminal.say out
       end
