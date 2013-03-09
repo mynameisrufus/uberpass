@@ -27,4 +27,4 @@ or your work related passwords:
 and getting some help:
 
   $ uberpass
-  $ uberpass:0.0.4> help
+  $ uberpass:0.0.5> help
