@@ -105,7 +105,7 @@ module Uberpass
     register_action do |action|
       action.name        = 'encrypt'
       action.short       = 'e'
-      action.usage       = '[name] << [password]'
+      action.usage       = '[name] < [password]'
       action.proc        = ->(terminal, key, password) {
         ShowDecorator.new(terminal, FileHandler.encrypt(key, password)).output
       }
