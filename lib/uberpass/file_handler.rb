@@ -36,13 +36,13 @@ module Uberpass
       end
 
       def write(encryptor)
-        File.open(passwords_file, "w") { |file|
+        File.open(passwords_file, "w+") { |file|
           file.write(encryptor.encrypted_data)
         }
-        File.open(key_file, "w") { |file|
+        File.open(key_file, "w+") { |file|
           file.write(encryptor.encrypted_key)
         }
-        File.open(iv_file, "w") { |file|
+        File.open(iv_file, "w+") { |file|
           file.write(encryptor.encrypted_iv)
         }
       end

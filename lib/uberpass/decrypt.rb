@@ -10,7 +10,6 @@ module Uberpass
       cipher.decrypt
       cipher.key = key.private_decrypt(encrypted_key)
       cipher.iv = key.private_decrypt(encrypted_iv)
-
       @decrypted_data = cipher.update(encrypted_data)
       @decrypted_data << cipher.final
     end

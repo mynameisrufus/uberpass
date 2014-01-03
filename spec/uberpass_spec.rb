@@ -119,7 +119,7 @@ describe Uberpass do
 
   it "should show an error if key missing" do
     @output.truncate(@output.rewind)
-    @input << 's missing'
+    @input << 'cat missing'
     @input.rewind
 
     @uberpass.do_action

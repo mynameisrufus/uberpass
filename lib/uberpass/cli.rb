@@ -61,7 +61,7 @@ module Uberpass
       action.short       = 'g'
       action.usage       = 'g google'
       action.proc        = ->(terminal, key) {
-        ShowDecorator.new(terminal, FileHandler.generate(key)).output
+        ShowDecorator.new(terminal, FileHandler.generate(key.to_s)).output
       }
       action.description = "Generates a random password for a given key"
     end
@@ -71,7 +71,7 @@ module Uberpass
       action.short       = 'gs'
       action.usage       = 'gs [name]'
       action.proc        = ->(terminal, key) {
-        ShowDecorator.new(terminal, FileHandler.generate_short(key)).output
+        ShowDecorator.new(terminal, FileHandler.generate_short(key.to_s)).output
       }
       action.description = "Generates a random password but smaller so its easier to type into a phone or a legacy system"
     end
@@ -82,20 +82,20 @@ module Uberpass
       action.usage       = 'rm [name]'
       action.confirm     = true
       action.proc        = ->(terminal, key) {
-        ShowDecorator.new(terminal, FileHandler.remove(key)).output
+        ShowDecorator.new(terminal, FileHandler.remove(key.to_s)).output
       }
       action.description = "Removes and entry"
     end
 
     register_action do |action|
       action.name        = 'show'
-      action.short       = 's'
-      action.usage       = 's [name|index]'
+      action.short       = 'cat'
+      action.usage       = 'cat [name|index]'
       action.proc        = ->(terminal, key) {
         entry = if key =~ /^\d+$/
           FileHandler.all[key.to_i]
         else
-          FileHandler.show key
+          FileHandler.show key.to_s
         end
         ShowDecorator.new(terminal, entry).output
       }
@@ -107,7 +107,7 @@ module Uberpass
       action.short       = 'e'
       action.usage       = '[name] < [password]'
       action.proc        = ->(terminal, key, password) {
-        ShowDecorator.new(terminal, FileHandler.encrypt(key, password)).output
+        ShowDecorator.new(terminal, FileHandler.encrypt(key.to_s, password.to_s)).output
       }
       action.description = "Encrypts a value"
     end
@@ -117,7 +117,7 @@ module Uberpass
       action.short       = 'mv'
       action.usage       = 'mv [name] [new name]'
       action.proc        = ->(terminal, old, new) {
-        ShowDecorator.new(terminal, FileHandler.rename(old, new)).output
+        ShowDecorator.new(terminal, FileHandler.rename(old.to_s, new.to_s)).output
       }
       action.description = "Rename an entry"
     end

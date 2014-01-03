@@ -41,7 +41,7 @@ input.truncate input.rewind
 puts output.string
 output.truncate output.rewind
 
-input << 's cia'
+input << 'cat cia'
 input.rewind
 uberpass.do_action
 input.truncate input.rewind
