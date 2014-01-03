@@ -19,9 +19,7 @@ describe Uberpass do
 
     @input.truncate(@input.rewind)
 
-    Uberpass::FileHandler.all.each do |entry|
-      Uberpass::FileHandler.remove entry.keys.first
-    end
+    Uberpass::FileHandler.seppuku!
 
     Uberpass::FileHandler.generate 'twitter'
     Uberpass::FileHandler.generate 'facebook'
@@ -43,7 +41,7 @@ describe Uberpass do
 
     assert_match /facebook/, @output.string
     assert_match /twitter/, @output.string
-    assert_match Time.now.strftime("%d/%m/%Y"), @output.string
+    assert_match Time.now.strftime("%Y-%m-%d"), @output.string
   end
 
   it "should raise and catch argument error" do
@@ -74,7 +72,7 @@ describe Uberpass do
 
     assert_match /are you sure\?/, @output.string
     assert_match /linkedin/, @output.string
-    assert_match Time.now.strftime("%d/%m/%Y"), @output.string
+    assert_match Time.now.strftime("%Y-%m-%d"), @output.string
   end
 
   it "should encrypt an existing password with <" do

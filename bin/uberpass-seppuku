@@ -1,0 +1,13 @@
+#!/usr/bin/env ruby
+
+Signal.trap("INT") { exit }
+
+require 'uberpass'
+
+Uberpass::FileHandler.configure { |handler| handler.namespace = ARGV.pop }
+
+terminal = HighLine.new $stdin, $stdout
+
+if terminal.agree("<%= color('are you sure?', :error) %> ") { |q| q.default = "n" }
+  Uberpass::FileHandler.seppuku!
+end

@@ -1,4 +1,5 @@
 require 'securerandom'
+require 'json'
 
 module Uberpass
   class FileHandler
@@ -47,9 +48,15 @@ module Uberpass
         }
       end
 
+      def seppuku!
+        if File.exists?(passwords_file)
+          File.unlink(passwords_file, key_file, iv_file)
+        end
+      end
+
       def decrypted_passwords
         if File.exists?(passwords_file)
-          YAML::load(
+          decode(
             Decrypt.new(
               File.read(private_key_file),
               File.read(passwords_file),
@@ -61,6 +68,14 @@ module Uberpass
         else
           {}
         end
+      end
+
+      def encode(data)
+        JSON.pretty_generate(data)
+      end
+
+      def decode(data)
+        JSON.parse(data)
       end
 
       def show(key)
@@ -88,7 +103,7 @@ module Uberpass
           "password" => password,
           "created_at" => Time.now
         }
-        encryptor = Encrypt.new(File.read(public_key_file), passwords.to_yaml, pass_phrase)
+        encryptor = Encrypt.new(File.read(public_key_file), encode(passwords), pass_phrase)
         write(encryptor)
         Hash[*[key, entry]]
       end
@@ -98,7 +113,7 @@ module Uberpass
         raise ExistingEntryError, new unless passwords[new].nil?
         entry = passwords.delete old
         passwords[new] = entry
-        encryptor = Encrypt.new(File.read(public_key_file), passwords.to_yaml)
+        encryptor = Encrypt.new(File.read(public_key_file), encode(passwords))
         write(encryptor)
         Hash[*[new, entry]]
       end
@@ -106,7 +121,7 @@ module Uberpass
       def remove(key)
         passwords = decrypted_passwords
         entry = passwords.delete key
-        encryptor = Encrypt.new(File.read(public_key_file), passwords.to_yaml)
+        encryptor = Encrypt.new(File.read(public_key_file), encode(passwords))
         write(encryptor)
         Hash[*[key, entry]]
       end

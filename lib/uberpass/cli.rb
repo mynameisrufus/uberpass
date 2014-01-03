@@ -211,7 +211,7 @@ module Uberpass
       end
 
       def output_entry(key, values, index)
-        out = "<%= color('#{values["created_at"].strftime("%d/%m/%Y")}', :date) %>"
+        out = "<%= color('#{values["created_at"]}', :date) %>"
         out << " <%= color('[#{index}]', :index) %>"
         out << " <%= color('#{key}', :name) %>"
         @terminal.say out
@@ -251,7 +251,7 @@ module Uberpass
         if values.nil?
           out = "<%= color('#{key} does not exist', :error) %>"
         else
-          out = "<%= color('#{values["created_at"].strftime("%d/%m/%Y")}', :date) %>"
+          out = "<%= color('#{values["created_at"]}', :date) %>"
           out << " <%= color('#{key}', :name) %>\n"
           out << "<%= color('#{values["password"]}', :name) %>"
         end

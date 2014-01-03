@@ -28,3 +28,18 @@ and getting some help:
 
   $ uberpass
   $ uberpass:0.0.5> help
+
+removing a password file
+
+  $ uberpass-seppuku
+
+or
+
+  $ uberpass-seppuku happy_place
+
+== Changelog
+
+=== v1.0.0
+
+Passwords now stored as json. Dump passwords from older versions and add back
+in.
